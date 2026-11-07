@@ -30,6 +30,8 @@ services:
       BS_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
       OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-af61vU1kIT0uw5YzOM7VRM3KGrxBAfuhVgJX9ghtkHfdRVsu}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.chatanywhere.org/v1}
+      # belt-and-braces: skip batched DB log writer even before migration applies
+      ENABLE_DB_LOG: "false"
     ports:
       - "8090:8090"
     volumes:
@@ -41,6 +43,12 @@ services:
     networks:
       - basenode
     command: ["/pb/bosbase", "serve", "--http=0.0.0.0:8090", "--encryptionEnv", "BS_ENCRYPTION_KEY"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f -s http://localhost:8090/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   bosbase-node-2:
     build:
@@ -67,11 +75,11 @@ services:
       - basenode
     command: ["sh", "-c", "sleep 5 && /pb/bosbase serve --http=0.0.0.0:8090 --encryptionEnv BS_ENCRYPTION_KEY"]
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8090/api/health || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "curl -f -s http://localhost:8090/api/health || exit 1"]
+      interval: 30s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 3
+      start_period: 15s
 
   nginx:
     build:
@@ -90,11 +98,11 @@ services:
     networks:
       - basenode
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/nginx-health"]
-      interval: 10s
+      test: ["CMD-SHELL", "curl -f -s http://localhost/nginx-health || exit 1"]
+      interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 15s
 
 networks:
   basenode:

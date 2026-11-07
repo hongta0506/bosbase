@@ -10,6 +10,8 @@ services:
       # REDIS_URL: ${REDIS_URL:-192.168.1.60:6379}
       # REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       WASM_ENABLE: ${WASM_ENABLE:-true}
+      # belt-and-braces: skip batched DB log writer even before migration applies
+      ENABLE_DB_LOG: "false"
       WASM_INSTANCE_NUM: ${WASM_INSTANCE_NUM:-2}
       SCRIPT_CONCURRENCY: ${SCRIPT_CONCURRENCY:-2}
       FUNCTION_CONN_NUM: ${FUNCTION_CONN_NUM:-10}
@@ -37,11 +39,11 @@ services:
       - basenode
     command: ["sh", "-c", "sleep 5 && /pb/bosbase serve --http=0.0.0.0:8090 --encryptionEnv BS_ENCRYPTION_KEY"]
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8090/api/health || exit 1"]
-      interval: 10s
+      test: ["CMD-SHELL", "curl -f -s http://localhost:8090/api/health || exit 1"]
+      interval: 30s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 3
+      start_period: 15s
 
   postgres-db:
     image: pgvector/pgvector:pg16
